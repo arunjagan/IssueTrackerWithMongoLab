@@ -1,0 +1,204 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<link rel="stylesheet" href = "http://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
+<script src="http://ajax.googleapis.com/ajax/libs/angularjs/1.4.8/angular.min.js"></script>
+<script src="http://ajax.googleapis.com/ajax/libs/angularjs/1.4.8/angular-route.js" ></script>
+<script type="text/javascript" src="ui-bootstrap-tpls-0.14.3.min.js"></script>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>IssueTrackerWeb</title>
+<style>
+table,th,td {
+    border: 1px solid black;
+}
+</style>
+</head>
+<body>
+
+<h1 align="center"> Accessibility Ticket Tracker</h1>
+
+<div ng-app="myApp" ng-controller="customersCtrl" > 
+		<h3 class="primary bold" font color="red">{{successMsg}}</h3>
+ 		<form>
+		Description: <input type="text" align="right" size="50" ng-model="desc">   <input type="hidden" size="35" ng-model="num">
+		<br>
+		Status:   <select align="right" ng-model="status" width="15">
+					<option value="OPEN" selected>OPEN</option>
+					<option value="IN-PROGRESS">IN-PROGRESS</option>
+					<option value="RESOLVED" >RESOLVED</option>
+					</select>
+		<br>
+		Severity: <select align="right" ng-model="severity" width="15" >
+                   <option value="HIGH" selected>HIGH</option> 
+					<option value="MEDIUM" >MEDIUM</option>
+					<option value="LOW" >LOW</option>
+					</select>
+		<br>
+		<br><br>
+		<button ng-model="btnadd" ng-click="execute()">Add a Ticket</button>   <button  ng-model="btnedit" ng-click="edit()">Edit a Ticket</button>  
+		<br><br>
+	</form>
+
+
+		<table style="width: auto;" class="table table-striped table-condensed" >
+		
+			<thead>
+        		<tr>
+           		 <th style="min-width: 60px;">ID</th>
+           		 <th style="min-width: 80px;">Description</th>
+           		 <th style="min-width: 40px;">Status</th>
+           		 <th style="min-width: 40px;">Severity</th>
+            	 <th style="min-width: 30px;"> </th>
+            	 <th style="min-width: 30px;"> </th>
+        		</tr>
+        	</thead>
+        	
+        	
+        
+            <tbody ng-show="issues.length!=0">
+                	<tr ng-repeat="x in issues">
+                		<td>{{x.id}}</td>
+    					<td>{{x.description}}</td>
+    					<td>{{x.status}}</td>
+    					<td>{{x.severity}}</td>
+    					<td><a ng-click="editUser(x.id,x.description,x.status,x.severity)" class="btn btn-small btn-primary">Edit</a></td>
+            			<td><a ng-click="deleteUser(x.id)" class="btn btn-small btn-danger">Delete</a></td>
+    				</tr>
+    		</tbody>
+    	
+        </table>	
+  </div>
+
+<script>
+var app = angular.module('myApp', ['ui.bootstrap','ngRoute']);
+
+// configure our routes
+app.config(function($routeProvider) {
+    $routeProvider
+
+        // route for the home page
+        .when('/', {
+            templateUrl : 'IssueTrackerWeb.html',
+            controller  : 'customersCtrl'
+        })
+
+        // route for the about page
+        .when('/edit', {
+            templateUrl : 'IssueTrackerWebEdit.html',
+            controller  : 'customersCtrl'
+        })
+});
+
+app.controller('customersCtrl', function($scope, $http,$location) {
+	
+	
+	$scope.execute= function () {
+		
+		if($scope.num != null)
+			$scope.successMsg="INVALID OPERATION"
+			
+		else if(($scope.desc == null || $scope.desc == "") || ($scope.status == null || $scope.status == "") || ($scope.severity == null || $scope.severity == ""))
+			$scope.successMsg="Parameters should not be empty"
+			
+		else
+			{	
+			var obj = {
+					desc:$scope.desc,
+					status:$scope.status,
+					severity:$scope.severity 
+			};
+			
+			 $http.post("rest/issue/create",obj)
+			  .then(function(response){
+				
+				  $scope.getJsonData();
+				  $scope.successMsg="Records Inserted Successfully"
+				  $scope.clearData();
+				
+			  });
+			}
+		}
+
+	
+	$scope.editUser = function(id,des,stat,sev){
+		
+		$scope.num = id;
+		$scope.desc = des;
+		$scope.status = stat;
+		$scope.severity = sev;
+	}
+	
+	
+	
+	
+	
+	$scope.deleteUser = function(id){
+		
+		var deleteId = id;
+		var del = {issueId:deleteId};
+		
+		 $http.post("rest/issue/delete",del)
+	  	.success(function (response){
+	     $scope.successMsg="Records Deleted Successfully"
+	  	 $scope.issues = response.issue;
+	  	 $scope.clearData();
+		  
+		});
+		
+	}
+	
+	$scope.edit= function () { 	
+	  	if($scope.num == null)
+	  		{
+	  		$scope.successMsg="INVALID OPERATION"
+	  		}
+	  	
+	  	else if( $scope.desc == null || $scope.desc == "" )
+	  		{
+	  		
+	  		$scope.successMsg="parameters should not be empty"
+	  		}
+	  	else
+	  	{
+	  		
+	  	var ob = {
+	  			id:$scope.num,
+				desc:$scope.desc,
+				status:$scope.status,
+				severity:$scope.severity 
+		};
+	  	
+	  	$http.post("rest/issue/edit",ob)
+	  	.success(function (response){
+	  		
+		 
+		  $scope.successMsg="Records Edited Successfully"
+		  $scope.issues = response.issue;
+		  $scope.clearData();
+		});
+	  	}
+	}
+	
+	
+	$scope.getJsonData= function () {
+	  	
+		return $http({method:'GET', url:'rest/issue/readAll'})
+	  	.success(function (response){
+	  		$scope.issues = response.issue;
+		
+		});
+	}
+	
+	$scope.clearData= function () {
+	
+		$scope.num = '';
+		$scope.desc = "";
+		$scope.status = "";
+		$scope.severity = "";
+	}
+	
+});
+</script>
+
+</body>
+</html>
